@@ -1,0 +1,24 @@
+# Binaries and build artifacts
+/bin/protonmail
+
+# Configuration files
+/bin/config.json
+/bin/cookies.json
+
+# IDE files
+.idea/
+.vscode/
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# OS specific
+.DS_Store
+Thumbs.db

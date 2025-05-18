@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/RealAlphabet/go-protonmail-cli/internal/constants"
 	"github.com/pquerna/otp/totp"
-	"github.com/realalphabet/protonmail-client/internal/constants"
 )
 
 type Config struct {

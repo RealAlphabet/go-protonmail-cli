@@ -1,0 +1,105 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const path = require('path');
+
+const app = express();
+const port = 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static('public'));
+
+// Load protobuf
+const PROTO_PATH = path.resolve(__dirname, '../proto/protonmail.proto');
+const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true
+});
+
+const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+const client = new protoDescriptor.protonmail.ProtonmailService(
+    'unix:///tmp/protonmail.sock',
+    grpc.credentials.createInsecure()
+);
+
+// Routes
+app.post('/api/login', (req, res) => {
+    const { username, password, captchaToken, totpCode, totpSecret } = req.body;
+    
+    client.Login({
+        username,
+        password,
+        captchaToken,
+        totpCode,
+        totpSecret
+    }, (err, response) => {
+        console.error(err, response);
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+
+        if (response.error) {
+            res.status(400).json(response);
+            return;
+        }
+
+        res.json(response.success);
+    });
+});
+
+app.post('/api/logout', (req, res) => {
+    const { sessionId } = req.body;
+    
+    client.Logout({ session_id: sessionId }, (err, response) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(response);
+    });
+});
+
+app.get('/api/emails', (req, res) => {
+    const { sessionId, page = 0 } = req.query;
+    
+    client.FetchEmails({
+        session_id: sessionId,
+        page_index: parseInt(page),
+        page_size: 50
+    }, (err, response) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(response);
+    });
+});
+
+app.get('/api/emails/:id', (req, res) => {
+    const { sessionId } = req.query;
+    const { id } = req.params;
+    
+    client.FetchEmailByID({
+        session_id: sessionId,
+        email_id: id
+    }, (err, response) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(response);
+    });
+});
+
+// Start server
+app.listen(port, () => {
+    console.log(`Web server running on http://localhost:${port}`);
+});

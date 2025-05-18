@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package protonmail;
+
+option go_package = "github.com/RealAlphabet/go-protonmail-cli/gen;proto";
+
+service ProtonmailService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc FetchEmails(FetchEmailsRequest) returns (MailList);
+  rpc FetchEmailByID(FetchEmailByIDRequest) returns (Mail);
+  rpc RequestStreamEmails(StreamEmailsRequest) returns (stream ServerEvent);
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+  string captchaToken = 3;
+  string totpCode = 4;
+  string totpSecret = 5;
+}
+
+message LoginResponse {
+  oneof result {
+    LoginSuccess success = 1;
+    LoginError error = 2;
+  }
+}
+
+message LoginSuccess {
+  string session_id = 1;
+}
+
+message LoginError {
+  enum ErrorType {
+    UNKNOWN = 0;
+    INVALID_CREDENTIALS = 1;
+    CAPTCHA_REQUIRED = 2;
+    TOTP_REQUIRED = 3;
+  }
+  ErrorType type = 1;
+  string message = 2;
+  string captcha_url = 3;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+}
+message LogoutResponse {
+  bool success = 1;
+}
+
+message FetchEmailsRequest {
+  string session_id = 1;
+  int32 page_index = 2;
+  int32 page_size = 3;
+}
+message FetchEmailByIDRequest {
+  string session_id = 1;
+  string email_id = 2;
+}
+
+message MailList {
+  repeated Mail mails = 1;
+}
+message Mail {
+  string id = 1;
+  string subject = 2;
+  string sender = 3;
+  string content = 4;
+  int64 timestamp = 5;
+}
+
+message StreamEmailsRequest {
+  string session_id = 1;
+}
+message ServerEvent {
+  oneof event {
+    NewMailNotification new_mail = 1;
+    ErrorMessage error = 2;
+  }
+}
+message NewMailNotification {
+  Mail mail = 1;
+}
+message ErrorMessage {
+  string message = 1;
+}

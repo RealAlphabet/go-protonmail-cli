@@ -22,7 +22,7 @@ go mod tidy
 
 # Build du binaire
 echo "Build du client ProtonMail..."
-go build -o bin/protonmail ./cmd/protonmail
+go build -trimpath -ldflags="-s -w" -o bin/protonmail ./cmd/protonmail
 
 echo "✅ Build terminé avec succès !"
 echo "Le binaire est disponible dans: bin/protonmail"

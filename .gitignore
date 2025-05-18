@@ -22,3 +22,7 @@ go.work
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Web server
+node_modules
+dist

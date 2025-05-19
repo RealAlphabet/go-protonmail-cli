@@ -1,16 +1,35 @@
 {
   "name": "protonmail-web-server",
   "version": "1.0.0",
-  "description": "Web server for ProtonMail client",
-  "main": "server.js",
+  "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "watch": "vite build --watch",
+    "preview": "vite preview",
     "start": "node server.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.9.14",
     "@grpc/proto-loader": "^0.7.10",
-    "express": "^4.18.2",
+    "@types/dompurify": "^3.0.5",
+    "body-parser": "^1.20.2",
     "cors": "^2.8.5",
-    "body-parser": "^1.20.2"
+    "dompurify": "^3.2.5",
+    "express": "^4.18.2",
+    "pinia": "^2.1.6",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.7",
+    "@types/node": "^20.5.0",
+    "@vitejs/plugin-vue": "^4.3.1",
+    "@vue/tsconfig": "^0.4.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.9",
+    "vue-tsc": "^2.2.10"
   }
 }

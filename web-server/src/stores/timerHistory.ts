@@ -95,9 +95,14 @@ export const useTimerHistoryStore = defineStore('timerHistory', () => {
   const canUndo = computed(() => currentActionIndex.value >= 0)
   const canRedo = computed(() => currentActionIndex.value < actionLog.value.length - 1)
 
-  // Obtenir l'historique complet
+  // Exposer l'historique pour l'interface
   function getHistory() {
     return actionLog.value
+  }
+
+  // Exposer l'index actuel pour l'interface
+  function getCurrentIndex() {
+    return currentActionIndex.value
   }
 
   // Obtenir l'état actuel
@@ -157,6 +162,7 @@ export const useTimerHistoryStore = defineStore('timerHistory', () => {
   }
 
   return {
+    getCurrentIndex,
     getCurrentState,
     getHistory,
     canUndo,

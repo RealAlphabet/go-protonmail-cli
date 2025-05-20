@@ -22,11 +22,23 @@
     </div>
 
     <div class="controls">
-      <button @click="startTimer" :disabled="isRunning">Démarrer</button>
-      <button @click="stopTimer" :disabled="!isRunning">Arrêter</button>
-      <button @click="addCheckpoint" :disabled="!isRunning">Checkpoint</button>
-      <button @click="reset">Réinitialiser</button>
+      <div class="main-controls">
+        <button @click="startTimer" :disabled="isRunning">Démarrer</button>
+        <button @click="stopTimer" :disabled="!isRunning">Arrêter</button>
+        <button @click="addCheckpoint" :disabled="!isRunning">Checkpoint</button>
+        <button @click="reset">Réinitialiser</button>
+      </div>
+      <div class="history-controls">
+        <button @click="undoAction" :disabled="!canUndo" title="Annuler">
+          ↶
+        </button>
+        <button @click="redoAction" :disabled="!canRedo" title="Rétablir">
+          ↷
+        </button>
+      </div>
     </div>
+
+    <TimerHistory />
 
     <div class="checkpoints-list" v-if="checkpoints.length">
       <h3>Checkpoints</h3>
@@ -59,7 +71,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, watch, computed, provide } from 'vue'
+import { useTimerHistoryStore } from '../stores/timerHistory'
+import type { Checkpoint } from '../types'
+import { getTimeMainPart, getTimeMilliseconds } from '../utils/timeFormat'
+import TimerHistory from './TimerHistory.vue'
 
 interface Checkpoint {
   timestamp: number
@@ -75,62 +91,42 @@ const lastCheckpoint = ref(0)
 const checkpoints = ref<Checkpoint[]>([])
 let timerInterval: number | null = null
 
-// Charger les données au démarrage
-const loadTimerData = async () => {
-  try {
-    const response = await fetch('/api/timer')
-    const data = await response.json()
-    isRunning.value = data.isRunning
-    startTime.value = data.startTime
-    lastCheckpoint.value = data.lastCheckpoint
-    checkpoints.value = data.checkpoints
-    
-    if (isRunning.value) {
+const historyStore = useTimerHistoryStore()
+const showHistory = ref(false)
+
+// Computed properties pour l'historique
+const canUndo = computed(() => historyStore.canUndo)
+const canRedo = computed(() => historyStore.canRedo)
+
+// Surveiller les changements d'état du store
+watch(
+  () => historyStore.getCurrentState(),
+  (newState) => {
+    startTime.value = newState.startTime
+    lastCheckpoint.value = newState.lastCheckpoint
+    isRunning.value = newState.isRunning
+    checkpoints.value = newState.checkpoints
+
+    if (newState.isRunning && !timerInterval) {
       updateTimer()
+    } else if (!newState.isRunning && timerInterval) {
+      clearInterval(timerInterval)
+      timerInterval = null
     }
-  } catch (error) {
-    console.error('Error loading timer data:', error)
-  }
+  },
+  { deep: true }
+)
+
+// Les données sont maintenant gérées par le store
+// Le watcher sur historyStore.getCurrentState() s'occupe de la synchronisation
+
+const startTimer = () => {
+  const now = Date.now()
+  historyStore.actions.startTimer(now)
 }
 
-// Sauvegarder les données
-const saveTimerData = async () => {
-  try {
-    await fetch('/api/timer', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        isRunning: isRunning.value,
-        startTime: startTime.value,
-        lastCheckpoint: lastCheckpoint.value,
-        checkpoints: checkpoints.value
-      })
-    })
-  } catch (error) {
-    console.error('Error saving timer data:', error)
-  }
-}
-
-// Charger les données au montage du composant
-loadTimerData()
-
-const startTimer = async () => {
-  startTime.value = Date.now()
-  lastCheckpoint.value = startTime.value
-  isRunning.value = true
-  updateTimer()
-  await saveTimerData()
-}
-
-const stopTimer = async () => {
-  isRunning.value = false
-  if (timerInterval) {
-    clearInterval(timerInterval)
-    timerInterval = null
-  }
-  await saveTimerData()
+const stopTimer = () => {
+  historyStore.actions.stopTimer()
 }
 
 const updateTimer = () => {
@@ -141,46 +137,33 @@ const updateTimer = () => {
   }, 10)
 }
 
-const addCheckpoint = async () => {
+const addCheckpoint = () => {
   const now = Date.now()
-  checkpoints.value.push({
+  const checkpoint: Checkpoint = {
     timestamp: now,
     duration: now - lastCheckpoint.value,
     description: ''
-  })
-  lastCheckpoint.value = now
-  await saveTimerData()
+  }
+  historyStore.actions.addCheckpoint(checkpoint)
 }
 
-const reset = async () => {
-  stopTimer()
+const reset = () => {
+  const previousState = historyStore.getCurrentState()
+  historyStore.actions.resetTimer(previousState)
   totalTime.value = 0
   checkpointDiff.value = 0
-  checkpoints.value = []
-  startTime.value = 0
-  lastCheckpoint.value = 0
-  await saveTimerData()
 }
 
-const getTimeMainPart = (ms: number) => {
-  const totalSeconds = Math.floor(ms / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  
-  const timeArray = []
-  if (hours > 0) {
-    timeArray.push(hours.toString().padStart(2, '0'))
-  }
-  timeArray.push(minutes.toString().padStart(2, '0'))
-  timeArray.push(seconds.toString().padStart(2, '0'))
-  
-  return timeArray.join(':')
+const undoAction = () => {
+  historyStore.undo()
 }
 
-const getTimeMilliseconds = (ms: number) => {
-  return Math.floor((ms % 1000) / 10).toString().padStart(2, '0')
+const redoAction = () => {
+  historyStore.redo()
 }
+
+// Fournir le store au composant TimerHistory
+provide('timerStore', historyStore)
 
 const formatExactTime = (timestamp: number) => {
   const date = new Date(timestamp)
@@ -190,17 +173,14 @@ const formatExactTime = (timestamp: number) => {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 }
 
-const deleteCheckpoint = async (index: number) => {
-  checkpoints.value.splice(index, 1)
-  if (index === checkpoints.value.length) { // Si on supprime le dernier checkpoint
-    lastCheckpoint.value = index > 0 ? checkpoints.value[index - 1].timestamp : startTime.value
-  }
-  // Recalculer la durée des checkpoints suivants si nécessaire
-  for (let i = index; i < checkpoints.value.length; i++) {
-    const prevTimestamp = i > 0 ? checkpoints.value[i - 1].timestamp : startTime.value
-    checkpoints.value[i].duration = checkpoints.value[i].timestamp - prevTimestamp
-  }
-  await saveTimerData()
+const updateCheckpointDescription = (index: number, description: string) => {
+  const previousDescription = checkpoints.value[index].description
+  historyStore.actions.editCheckpointDescription(index, previousDescription, description)
+}
+
+const deleteCheckpoint = (index: number) => {
+  const deletedCheckpoint = checkpoints.value[index]
+  historyStore.actions.deleteCheckpoint(index, deletedCheckpoint)
 }
 
 onUnmounted(() => {
@@ -211,6 +191,76 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.main-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.history-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.history-controls button {
+  width: 40px;
+  font-size: 1.5rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.history-log {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.history-entries {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 1rem 0;
+}
+
+.history-entry {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.history-entry.undo-point {
+  background-color: #e9ecef;
+  font-style: italic;
+}
+
+.entry-time {
+  color: #666;
+  font-family: monospace;
+}
+
+.toggle-history {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toggle-history:hover {
+  background-color: #e9ecef;
+}
 .timer-container {
   max-width: 600px;
   width: 100%;

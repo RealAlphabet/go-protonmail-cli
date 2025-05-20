@@ -20,16 +20,6 @@ app.use(express.static('dist'));
 
 // Timer data storage
 const TIMER_DATA_FILE = 'timer-data.json';
-let timerData = { startTime: 0, lastCheckpoint: 0, isRunning: false, checkpoints: [] };
-
-// Load timer data if exists
-try {
-    if (fs.existsSync(TIMER_DATA_FILE)) {
-        timerData = JSON.parse(fs.readFileSync(TIMER_DATA_FILE, 'utf8'));
-    }
-} catch (error) {
-    console.error('Error loading timer data:', error);
-}
 
 // Load protobuf
 const PROTO_PATH = resolve(__dirname, '../proto/protonmail.proto');
@@ -119,13 +109,24 @@ app.get('/api/emails/:id', (req, res) => {
 
 // Timer API routes
 app.get('/api/timer', (req, res) => {
-    res.json(timerData);
+    try {
+        if (fs.existsSync(TIMER_DATA_FILE)) {
+            res
+                .type('application/json')
+                .send(fs.readFileSync(TIMER_DATA_FILE, 'utf8'));
+        } else {
+            res.status(404).json({ error: 'Timer data not found' });
+        }
+
+    } catch (error) {
+        console.error('Error reading timer data:', error);
+        res.status(500).json({ error: 'Failed to read timer data' });
+    }
+
 });
 
 app.post('/api/timer', (req, res) => {
-    timerData = req.body;
-    // Save to file
-    fs.writeFileSync(TIMER_DATA_FILE, JSON.stringify(timerData));
+    fs.writeFileSync(TIMER_DATA_FILE, JSON.stringify(req.body));
     res.json({ success: true });
 });
 

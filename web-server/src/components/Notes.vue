@@ -143,9 +143,10 @@ loadNotes()
 
 <style scoped>
 .notes-container {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: auto;
   padding: 1rem;
+  width: 800px;
 }
 
 .notes-header {

@@ -17,7 +17,7 @@
       <Notes v-else-if="page === 'notes'" />
       <template v-else>
         <template v-if="!authStore.sessionId">
-          <div class="max-w-md my-auto p-5">
+          <div class="m-auto max-w-full w-md p-5">
             <h2 class="text-2xl font-bold text-center mb-8">Connexion</h2>
             <LoginForm />
           </div>

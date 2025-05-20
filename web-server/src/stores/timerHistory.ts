@@ -6,11 +6,14 @@ import { createAction } from '../types/timerActions'
 import { createStorageAdapter } from '../services/timerStorage'
 
 export const useTimerHistoryStore = defineStore('timerHistory', () => {
+  // L'ID du timer actuel
+  const timerId = ref('')
+
   // Créer l'adaptateur de stockage
-  const storage = createStorageAdapter({
-    useLocalStorage: true,
-    serverUrl: '/api/timer' // À configurer selon l'environnement
-  })
+  const storage = computed(() => createStorageAdapter({
+    useLocalStorage: false,
+    serverUrl: `/api/timer/${timerId.value}` // URL dynamique avec l'ID
+  }))
 
   // L'historique complet des actions, jamais modifié
   const actionLog = ref<HistoryEntry[]>([])
@@ -113,7 +116,7 @@ export const useTimerHistoryStore = defineStore('timerHistory', () => {
   // Persistance
   async function saveToStorage() {
     try {
-      await storage.save({
+      await storage.value.save({
         actionLog: actionLog.value,
         currentState: currentState.value,
         currentActionIndex: currentActionIndex.value
@@ -123,18 +126,26 @@ export const useTimerHistoryStore = defineStore('timerHistory', () => {
     }
   }
 
+  // Charger les données depuis le stockage
   async function loadFromStorage() {
+    if (!timerId.value) return
+
     try {
-      const data = await storage.load()
-      console.log(data)
+      const data = await storage.value.load()
       if (data) {
         actionLog.value = data.actionLog
         currentState.value = data.currentState
         currentActionIndex.value = data.currentActionIndex
       }
     } catch (error) {
-      console.error('Failed to load timer history:', error)
+      console.error('Error loading timer data:', error)
     }
+  }
+
+  // Initialiser un timer avec un ID
+  async function initTimer(id: string) {
+    timerId.value = id
+    await loadFromStorage()
   }
 
   // Charger l'historique au démarrage
@@ -169,6 +180,8 @@ export const useTimerHistoryStore = defineStore('timerHistory', () => {
     canRedo,
     undo,
     redo,
-    actions: actionCreators
+    actions: actionCreators,
+    initTimer,
+    timerId: computed(() => timerId.value)
   }
 })

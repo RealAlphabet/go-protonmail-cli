@@ -10,7 +10,7 @@
             <button 
               @click="currentView = 'timer'"
               class="px-3 py-2 rounded-md text-sm font-medium"
-              :class="currentView === 'timer' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'"
+              :class="currentView === 'timer' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
             >
               Timer
             </button>
@@ -18,7 +18,7 @@
               v-if="authStore.sessionId"
               @click="currentView = 'mail'"
               class="px-3 py-2 rounded-md text-sm font-medium"
-              :class="currentView === 'mail' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'"
+              :class="currentView === 'mail' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
             >
               Emails
             </button>

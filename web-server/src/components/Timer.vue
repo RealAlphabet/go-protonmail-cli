@@ -1,72 +1,78 @@
 <template>
   <div class="timer-container">
-    <div class="main-timer">
-      <div class="time-display">
-        <h1>
-          <template v-if="getTimeMainPart(checkpointDiff)">
-            {{ getTimeMainPart(checkpointDiff) }}
-          </template>
-          <span class="milliseconds">.{{ getTimeMilliseconds(checkpointDiff) }}</span>
-        </h1>
-        <p>Depuis le dernier checkpoint</p>
-      </div>
-      <div class="total-time">
-        <h2>
-          <template v-if="getTimeMainPart(totalTime)">
-            {{ getTimeMainPart(totalTime) }}
-          </template>
-          <span class="milliseconds">.{{ getTimeMilliseconds(totalTime) }}</span>
-        </h2>
-        <p>Temps total</p>
-      </div>
-    </div>
+    <TimerSelector v-if="!historyStore.timerId" @select="initTimer" />
 
-    <div class="controls">
-      <div class="main-controls">
-        <button @click="startTimer" :disabled="isRunning">Démarrer</button>
-        <button @click="stopTimer" :disabled="!isRunning">Arrêter</button>
-        <button @click="addCheckpoint" :disabled="!isRunning">Checkpoint</button>
-        <button @click="reset">Réinitialiser</button>
-      </div>
-      <div class="history-controls">
-        <button @click="undoAction" :disabled="!canUndo" title="Annuler">
-          ↶
-        </button>
-        <button @click="redoAction" :disabled="!canRedo" title="Rétablir">
-          ↷
-        </button>
-      </div>
-    </div>
-
-    <TimerHistory />
-
-    <div class="checkpoints-list" v-if="checkpoints.length">
-      <h3>Checkpoints</h3>
-      <div v-for="(checkpoint, index) in checkpoints" :key="index" class="checkpoint-item">
-        <div class="checkpoint-info">
-          <div class="checkpoint-time">
-            <template v-if="getTimeMainPart(checkpoint.duration)">
-              {{ getTimeMainPart(checkpoint.duration) }}
+    <template v-else>
+      <div class="main-timer">
+        <div class="time-display">
+          <h1>
+            <template v-if="getTimeMainPart(checkpointDiff)">
+              {{ getTimeMainPart(checkpointDiff) }}
             </template>
-            <span class="milliseconds">.{{ getTimeMilliseconds(checkpoint.duration) }}</span>
-          </div>
-          <div class="checkpoint-exact-time">{{ formatExactTime(checkpoint.timestamp) }}</div>
+            <span class="milliseconds">.{{ getTimeMilliseconds(checkpointDiff) }}</span>
+          </h1>
+          <p>Depuis le dernier checkpoint</p>
         </div>
-        <input 
-          v-model="checkpoint.description" 
-          :placeholder="'Checkpoint ' + (index + 1)"
-          class="checkpoint-description"
-          @change="saveTimerData"
-        />
-        <button 
-          @click="deleteCheckpoint(index)" 
-          class="delete-checkpoint"
-          title="Supprimer ce checkpoint"
-        >
-          x
-        </button>
+
+        <div class="total-time">
+          <h2>
+            <template v-if="getTimeMainPart(totalTime)">
+              {{ getTimeMainPart(totalTime) }}
+            </template>
+            <span class="milliseconds">.{{ getTimeMilliseconds(totalTime) }}</span>
+          </h2>
+          <p>Temps total</p>
+        </div>
       </div>
-    </div>
+
+      <div class="controls">
+        <div class="main-controls">
+          <button @click="startTimer" :disabled="isRunning">Démarrer</button>
+          <button @click="stopTimer" :disabled="!isRunning">Arrêter</button>
+          <button @click="addCheckpoint" :disabled="!isRunning">Checkpoint</button>
+          <button @click="reset" :disabled="isRunning">Reset</button>
+        </div>
+
+        <div class="history-controls">
+          <button @click="undoAction" :disabled="!canUndo" title="Annuler">
+            ↶
+          </button>
+          <button @click="redoAction" :disabled="!canRedo" title="Rétablir">
+            ↷
+          </button>
+        </div>
+      </div>
+
+      <TimerHistory />
+
+      <div class="checkpoints-list" v-if="checkpoints.length">
+        <h3>Checkpoints</h3>
+        <div v-for="(checkpoint, index) in checkpoints" :key="index" class="checkpoint-item">
+          <div class="checkpoint-info">
+            <div class="checkpoint-time">
+              <template v-if="getTimeMainPart(checkpoint.duration)">
+                {{ getTimeMainPart(checkpoint.duration) }}
+              </template>
+              <span class="milliseconds">.{{ getTimeMilliseconds(checkpoint.duration) }}</span>
+            </div>
+            <div class="checkpoint-exact-time">{{ formatExactTime(checkpoint.timestamp) }}</div>
+          </div>
+          <input 
+            v-model="checkpoint.description" 
+            :placeholder="'Checkpoint ' + (index + 1)"
+            class="checkpoint-description"
+            @change="saveTimerData"
+          />
+          <button 
+            @click="deleteCheckpoint(index)" 
+            class="delete-checkpoint"
+            title="Supprimer ce checkpoint"
+          >
+            x
+          </button>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -76,6 +82,7 @@ import { useTimerHistoryStore } from '../stores/timerHistory'
 import type { Checkpoint } from '../types'
 import { getTimeMainPart, getTimeMilliseconds } from '../utils/timeFormat'
 import TimerHistory from './TimerHistory.vue'
+import TimerSelector from './TimerSelector.vue'
 
 interface Checkpoint {
   timestamp: number
@@ -116,9 +123,6 @@ watch(
   },
   { deep: true }
 )
-
-// Les données sont maintenant gérées par le store
-// Le watcher sur historyStore.getCurrentState() s'occupe de la synchronisation
 
 const startTimer = () => {
   const now = Date.now()
@@ -162,8 +166,11 @@ const redoAction = () => {
   historyStore.redo()
 }
 
-// Fournir le store au composant TimerHistory
 provide('timerStore', historyStore)
+
+async function initTimer(id: string) {
+  await historyStore.initTimer(id)
+}
 
 const formatExactTime = (timestamp: number) => {
   const date = new Date(timestamp)
@@ -299,15 +306,20 @@ onUnmounted(() => {
 }
 
 .controls button {
+  transition: background-color 0.2s;
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
-  background-color: #007bff;
+  background-color: var(--primary);
   color: white;
   cursor: pointer;
   min-width: 100px;
   flex: 1;
   max-width: 150px;
+}
+
+.controls button:hover {
+  background: color-mix(in srgb, var(--primary) 80%, 20% black);
 }
 
 .controls button:disabled {

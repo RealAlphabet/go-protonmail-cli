@@ -19,7 +19,12 @@ app.use(bodyParser.json());
 app.use(express.static('dist'));
 
 // Timer data storage
-const TIMER_DATA_FILE = 'timer-data.json';
+const TIMERS_DIR = 'timers';
+
+// Créer le dossier des timers s'il n'existe pas
+if (!fs.existsSync(TIMERS_DIR)) {
+    fs.mkdirSync(TIMERS_DIR);
+}
 
 // Load protobuf
 const PROTO_PATH = resolve(__dirname, '../proto/protonmail.proto');
@@ -108,26 +113,35 @@ app.get('/api/emails/:id', (req, res) => {
 });
 
 // Timer API routes
-app.get('/api/timer', (req, res) => {
+app.get('/api/timer/:id', (req, res) => {
+    const timerId = req.params.id;
+    const timerFile = path.join(TIMERS_DIR, `${timerId}.json`);
+
     try {
-        if (fs.existsSync(TIMER_DATA_FILE)) {
+        if (fs.existsSync(timerFile)) {
             res
                 .type('application/json')
-                .send(fs.readFileSync(TIMER_DATA_FILE, 'utf8'));
+                .send(fs.readFileSync(timerFile, 'utf8'));
         } else {
-            res.status(404).json({ error: 'Timer data not found' });
+            res.status(404).json({ error: 'Timer not found' });
         }
-
     } catch (error) {
-        console.error('Error reading timer data:', error);
+        console.error(`Error reading timer ${timerId}:`, error);
         res.status(500).json({ error: 'Failed to read timer data' });
     }
-
 });
 
-app.post('/api/timer', (req, res) => {
-    fs.writeFileSync(TIMER_DATA_FILE, JSON.stringify(req.body));
-    res.json({ success: true });
+app.post('/api/timer/:id', (req, res) => {
+    const timerId = req.params.id;
+    const timerFile = path.join(TIMERS_DIR, `${timerId}.json`);
+
+    try {
+        fs.writeFileSync(timerFile, JSON.stringify(req.body));
+        res.json({ success: true });
+    } catch (error) {
+        console.error(`Error saving timer ${timerId}:`, error);
+        res.status(500).json({ error: 'Failed to save timer data' });
+    }
 });
 
 app.get("*", (req, res) => {

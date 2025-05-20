@@ -62,8 +62,8 @@ const timerStore = inject<TimerHistoryStore>('timerStore')!
 }
 
 .current-entry {
-  background-color: #e3f2fd;
-  border-left: 4px solid #2196f3;
+  background-color: color-mix(in srgb, var(--primary) 15%, 85% white);
+  border-left: 4px solid var(--primary);
   font-weight: 500;
 }
 

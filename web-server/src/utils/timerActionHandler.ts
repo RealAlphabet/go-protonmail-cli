@@ -1,4 +1,14 @@
-import type { TimerAction, TimerState, Checkpoint } from '../types/timerActions'
+import type {
+  TimerAction,
+  TimerState,
+  Checkpoint,
+  StartTimerAction,
+  StopTimerAction,
+  AddCheckpointAction,
+  DeleteCheckpointAction,
+  ResetTimerAction,
+  EditCheckpointDescriptionAction
+} from '../types/timerActions'
 
 export interface ActionHandler {
   apply: (state: TimerState, action: TimerAction) => TimerState
@@ -9,8 +19,8 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
   START_TIMER: {
     apply: (state, action) => ({
       ...state,
-      startTime: action.startTime,
-      lastCheckpoint: action.startTime,
+      startTime: (action as StartTimerAction).startTime,
+      lastCheckpoint: (action as StartTimerAction).startTime,
       isRunning: true
     }),
     undo: (state) => ({
@@ -35,8 +45,8 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
   ADD_CHECKPOINT: {
     apply: (state, action) => ({
       ...state,
-      lastCheckpoint: action.checkpoint.timestamp,
-      checkpoints: [...state.checkpoints, action.checkpoint]
+      lastCheckpoint: (action as AddCheckpointAction).checkpoint.timestamp,
+      checkpoints: [...state.checkpoints, (action as AddCheckpointAction).checkpoint]
     }),
     undo: (state) => ({
       ...state,
@@ -50,10 +60,10 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
   DELETE_CHECKPOINT: {
     apply: (state, action) => {
       const newCheckpoints = [...state.checkpoints]
-      newCheckpoints.splice(action.index, 1)
+      newCheckpoints.splice((action as DeleteCheckpointAction).index, 1)
       
       // Recalculer les durées après la suppression
-      for (let i = action.index; i < newCheckpoints.length; i++) {
+      for (let i = (action as DeleteCheckpointAction).index; i < newCheckpoints.length; i++) {
         const prevTimestamp = i > 0 ? newCheckpoints[i - 1].timestamp : state.startTime
         newCheckpoints[i] = {
           ...newCheckpoints[i],
@@ -63,18 +73,18 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
 
       return {
         ...state,
-        lastCheckpoint: action.index === state.checkpoints.length - 1
-          ? (action.index > 0 ? newCheckpoints[action.index - 1].timestamp : state.startTime)
+        lastCheckpoint: (action as import('../types/timerActions').DeleteCheckpointAction).index === state.checkpoints.length - 1
+          ? ((action as import('../types/timerActions').DeleteCheckpointAction).index > 0 ? newCheckpoints[(action as import('../types/timerActions').DeleteCheckpointAction).index - 1].timestamp : state.startTime)
           : state.lastCheckpoint,
         checkpoints: newCheckpoints
       }
     },
     undo: (state, action) => {
       const newCheckpoints = [...state.checkpoints]
-      newCheckpoints.splice(action.index, 0, action.deletedCheckpoint)
+      newCheckpoints.splice((action as DeleteCheckpointAction).index, 0, (action as DeleteCheckpointAction).deletedCheckpoint)
       
       // Recalculer les durées après la restauration
-      for (let i = action.index; i < newCheckpoints.length; i++) {
+      for (let i = (action as DeleteCheckpointAction).index; i < newCheckpoints.length; i++) {
         const prevTimestamp = i > 0 ? newCheckpoints[i - 1].timestamp : state.startTime
         newCheckpoints[i] = {
           ...newCheckpoints[i],
@@ -84,8 +94,8 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
 
       return {
         ...state,
-        lastCheckpoint: action.index === newCheckpoints.length - 1
-          ? action.deletedCheckpoint.timestamp
+        lastCheckpoint: (action as DeleteCheckpointAction).index === newCheckpoints.length - 1
+          ? (action as DeleteCheckpointAction).deletedCheckpoint.timestamp
           : state.lastCheckpoint,
         checkpoints: newCheckpoints
       }
@@ -100,7 +110,7 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
       checkpoints: []
     }),
     undo: (state, action) => ({
-      ...action.previousState
+      ...(action as ResetTimerAction).previousState
     })
   },
 
@@ -108,16 +118,16 @@ const handlers: Record<TimerAction['type'], ActionHandler> = {
     apply: (state, action) => ({
       ...state,
       checkpoints: state.checkpoints.map((checkpoint, index) =>
-        index === action.index
-          ? { ...checkpoint, description: action.newDescription }
+        index === (action as EditCheckpointDescriptionAction).index
+          ? { ...checkpoint, description: (action as EditCheckpointDescriptionAction).newDescription }
           : checkpoint
       )
     }),
     undo: (state, action) => ({
       ...state,
       checkpoints: state.checkpoints.map((checkpoint, index) =>
-        index === action.index
-          ? { ...checkpoint, description: action.previousDescription }
+        index === (action as EditCheckpointDescriptionAction).index
+          ? { ...checkpoint, description: (action as EditCheckpointDescriptionAction).previousDescription }
           : checkpoint
       )
     })

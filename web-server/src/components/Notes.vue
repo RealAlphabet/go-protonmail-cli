@@ -97,11 +97,14 @@ async function createNote() {
 async function openNote(id: string) {
   try {
     const response = await fetch(`/api/notes/${id}`)
-    currentNote.value = await response.json()
-    originalNote.value = JSON.stringify({
-      title: currentNote.value.title,
-      content: currentNote.value.content
-    })
+    const data = await response.json()
+    currentNote.value = data
+    if (currentNote.value) {
+      originalNote.value = JSON.stringify({
+        title: currentNote.value.title,
+        content: currentNote.value.content
+      })
+    }
   } catch (error) {
     console.error('Error loading note:', error)
   }

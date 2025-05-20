@@ -4,6 +4,7 @@ import type { TimerState, TimerAction, HistoryEntry } from '../types/timerAction
 import { applyAction, undoAction } from '../utils/timerActionHandler'
 import { createAction } from '../types/timerActions'
 import { createStorageAdapter } from '../services/timerStorage'
+import type { Checkpoint } from '../types/timerActions'
 
 export const useTimerHistoryStore = defineStore('timerHistory', () => {
   // L'ID du timer actuel
@@ -182,6 +183,9 @@ export const useTimerHistoryStore = defineStore('timerHistory', () => {
     redo,
     actions: actionCreators,
     initTimer,
-    timerId: computed(() => timerId.value)
+    timerId: computed(() => timerId.value),
+    saveCheckpoints: () => saveToStorage()
   }
 })
+
+export type TimerHistoryStore = ReturnType<typeof useTimerHistoryStore>

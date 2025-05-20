@@ -19,7 +19,7 @@
     </div>
     <div 
       v-for="(entry, index) in timerStore.getHistory()" 
-      :key="entry.id"
+      :key="entry.action.id"
       class="history-entry"
       :class="{ 
         'current-entry': index === timerStore.getCurrentIndex(),
@@ -43,6 +43,7 @@
 import { inject } from 'vue'
 import { formatExactTime } from '../utils/timeFormat'
 import type { TimerHistoryStore } from '../stores/timerHistory'
+import type { HistoryEntry } from '../types/timerActions'
 
 const timerStore = inject<TimerHistoryStore>('timerStore')!
 

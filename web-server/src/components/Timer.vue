@@ -50,7 +50,7 @@
         :show="showPanel"
         :checkpoints="checkpoints"
         @close="showPanel = false"
-        @save="saveTimerData"
+        @save="saveCheckpoints"
         @delete-checkpoint="deleteCheckpoint"
       />
     </template>
@@ -60,16 +60,10 @@
 <script setup lang="ts">
 import { ref, onUnmounted, watch, computed, provide } from 'vue'
 import { useTimerHistoryStore } from '../stores/timerHistory'
-import type { Checkpoint } from '../types'
+import type { Checkpoint } from '../types/timerActions'
 import { getTimeMainPart, getTimeMilliseconds } from '../utils/timeFormat'
 import TimerPanel from './TimerPanel.vue'
 import TimerSelector from './TimerSelector.vue'
-
-interface Checkpoint {
-  timestamp: number
-  duration: number
-  description: string
-}
 
 const isRunning = ref(false)
 const startTime = ref(0)
@@ -115,7 +109,7 @@ const stopTimer = () => {
 }
 
 const updateTimer = () => {
-  timerInterval = setInterval(() => {
+  timerInterval = window.setInterval(() => {
     const now = Date.now()
     totalTime.value = now - startTime.value
     checkpointDiff.value = now - lastCheckpoint.value
@@ -169,6 +163,10 @@ const updateCheckpointDescription = (index: number, description: string) => {
 const deleteCheckpoint = (index: number) => {
   const deletedCheckpoint = checkpoints.value[index]
   historyStore.actions.deleteCheckpoint(index, deletedCheckpoint)
+}
+
+const saveCheckpoints = () => {
+  historyStore.saveCheckpoints()
 }
 
 onUnmounted(() => {

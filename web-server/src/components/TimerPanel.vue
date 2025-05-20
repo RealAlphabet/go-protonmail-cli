@@ -59,7 +59,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { Checkpoint } from '../types'
+import type { Checkpoint } from '../types/timerActions'
 import { getTimeMainPart, getTimeMilliseconds } from '../utils/timeFormat'
 import { formatExactTime } from '../utils/timeFormat'
 import TimerHistory from './TimerHistory.vue'

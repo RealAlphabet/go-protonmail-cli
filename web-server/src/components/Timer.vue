@@ -2,11 +2,21 @@
   <div class="timer-container">
     <div class="main-timer">
       <div class="time-display">
-        <h1>{{ formatTime(checkpointDiff) }}</h1>
+        <h1>
+          <template v-if="getTimeMainPart(checkpointDiff)">
+            {{ getTimeMainPart(checkpointDiff) }}
+          </template>
+          <span class="milliseconds">.{{ getTimeMilliseconds(checkpointDiff) }}</span>
+        </h1>
         <p>Depuis le dernier checkpoint</p>
       </div>
       <div class="total-time">
-        <h2>{{ formatTime(totalTime) }}</h2>
+        <h2>
+          <template v-if="getTimeMainPart(totalTime)">
+            {{ getTimeMainPart(totalTime) }}
+          </template>
+          <span class="milliseconds">.{{ getTimeMilliseconds(totalTime) }}</span>
+        </h2>
         <p>Temps total</p>
       </div>
     </div>
@@ -22,7 +32,12 @@
       <h3>Checkpoints</h3>
       <div v-for="(checkpoint, index) in checkpoints" :key="index" class="checkpoint-item">
         <div class="checkpoint-info">
-          <div class="checkpoint-time">{{ formatTime(checkpoint.duration) }}</div>
+          <div class="checkpoint-time">
+            <template v-if="getTimeMainPart(checkpoint.duration)">
+              {{ getTimeMainPart(checkpoint.duration) }}
+            </template>
+            <span class="milliseconds">.{{ getTimeMilliseconds(checkpoint.duration) }}</span>
+          </div>
           <div class="checkpoint-exact-time">{{ formatExactTime(checkpoint.timestamp) }}</div>
         </div>
         <input 
@@ -147,13 +162,24 @@ const reset = async () => {
   await saveTimerData()
 }
 
-const formatTime = (ms: number) => {
+const getTimeMainPart = (ms: number) => {
   const totalSeconds = Math.floor(ms / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-  const milliseconds = Math.floor((ms % 1000) / 10)
   
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`
+  const timeArray = []
+  if (hours > 0) {
+    timeArray.push(hours.toString().padStart(2, '0'))
+  }
+  timeArray.push(minutes.toString().padStart(2, '0'))
+  timeArray.push(seconds.toString().padStart(2, '0'))
+  
+  return timeArray.join(':')
+}
+
+const getTimeMilliseconds = (ms: number) => {
+  return Math.floor((ms % 1000) / 10).toString().padStart(2, '0')
 }
 
 const formatExactTime = (timestamp: number) => {
@@ -286,6 +312,21 @@ onUnmounted(() => {
 .checkpoint-time {
   font-family: monospace;
   font-size: 1.1em;
+}
+
+.milliseconds {
+  color: #666;
+  font-size: 0.85em;
+}
+
+.time-display .milliseconds {
+  color: inherit;
+  font-size: 0.7em;
+}
+
+.total-time .milliseconds {
+  color: #666;
+  font-size: 0.7em;
 }
 
 .checkpoint-exact-time {

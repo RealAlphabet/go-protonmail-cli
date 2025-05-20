@@ -21,9 +21,10 @@ app.use(express.static('dist'));
 // Storage directories
 const TIMERS_DIR = 'timers';
 const NOTES_DIR = 'notes';
+const TODOS_DIR = 'todos';
 
 // Créer les dossiers s'ils n'existent pas
-for (const dir of [TIMERS_DIR, NOTES_DIR]) {
+for (const dir of [TIMERS_DIR, NOTES_DIR, TODOS_DIR]) {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
     }
@@ -199,6 +200,61 @@ app.post('/api/notes/:id', (req, res) => {
     } catch (error) {
         console.error(`Error saving note ${noteId}:`, error);
         res.status(500).json({ error: 'Failed to save note' });
+    }
+});
+
+// Todos API routes
+app.get('/api/todos', (req, res) => {
+    try {
+        const todos = fs.readdirSync(TODOS_DIR)
+            .filter(file => file.endsWith('.json'))
+            .map(file => {
+                const content = JSON.parse(fs.readFileSync(path.join(TODOS_DIR, file), 'utf8'));
+                return {
+                    id: path.basename(file, '.json'),
+                    ...content
+                };
+            })
+            .sort((a, b) => b.createdAt - a.createdAt);
+
+        res.json(todos);
+    } catch (error) {
+        console.error('Error reading todos:', error);
+        res.status(500).json({ error: 'Failed to read todos' });
+    }
+});
+
+app.post('/api/todos/:id', (req, res) => {
+    const todoId = req.params.id;
+    const todoFile = path.join(TODOS_DIR, `${todoId}.json`);
+
+    try {
+        const todoData = {
+            ...req.body,
+            updatedAt: Date.now()
+        };
+        fs.writeFileSync(todoFile, JSON.stringify(todoData, null, 2));
+        res.json({ success: true });
+    } catch (error) {
+        console.error(`Error saving todo ${todoId}:`, error);
+        res.status(500).json({ error: 'Failed to save todo' });
+    }
+});
+
+app.delete('/api/todos/:id', (req, res) => {
+    const todoId = req.params.id;
+    const todoFile = path.join(TODOS_DIR, `${todoId}.json`);
+
+    try {
+        if (fs.existsSync(todoFile)) {
+            fs.unlinkSync(todoFile);
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Todo not found' });
+        }
+    } catch (error) {
+        console.error(`Error deleting todo ${todoId}:`, error);
+        res.status(500).json({ error: 'Failed to delete todo' });
     }
 });
 

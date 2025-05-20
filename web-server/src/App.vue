@@ -15,6 +15,7 @@
         <Timer />
       </template>
       <Notes v-else-if="page === 'notes'" />
+      <Todos v-else-if="page === 'todos'" />
       <template v-else>
         <template v-if="!authStore.sessionId">
           <div class="m-auto max-w-full w-md p-5">
@@ -55,6 +56,14 @@
         Notes
       </button>
       <button 
+        @click="page = 'todos'"
+        class="cursor-pointer px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
+        :class="page === 'todos' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
+      >
+        <span class="material-icons">checklist</span>
+        Tâches
+      </button>
+      <button 
         v-if="authStore.sessionId"
         @click="page = 'mail'"
         class="cursor-pointer px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
@@ -75,8 +84,9 @@ import EmailList from './components/EmailList.vue'
 import EmailView from './components/EmailView.vue'
 import Timer from './components/Timer.vue'
 import Notes from './components/Notes.vue'
+import Todos from './components/Todos.vue'
 
 const authStore = useAuthStore()
 const selectedEmailId = ref<string | null>(null)
-const page = ref<'timer' | 'mail' | 'notes'>('mail')
+const page = ref<'timer' | 'mail' | 'notes' | 'todos'>('mail')
 </script>

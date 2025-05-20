@@ -1,33 +1,16 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <nav class="bg-white shadow mb-8">
+  <div class="min-h-screen flex flex-col bg-gray-100">
+    <nav class="bg-white shadow">
       <div class="container mx-auto px-4">
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center">
             <h1 class="text-xl font-bold">ProtonMail Client</h1>
           </div>
-          <div class="flex items-center space-x-4">
-            <button 
-              @click="currentView = 'timer'"
-              class="px-3 py-2 rounded-md text-sm font-medium"
-              :class="currentView === 'timer' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
-            >
-              Timer
-            </button>
-            <button 
-              v-if="authStore.sessionId"
-              @click="currentView = 'mail'"
-              class="px-3 py-2 rounded-md text-sm font-medium"
-              :class="currentView === 'mail' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
-            >
-              Emails
-            </button>
-          </div>
         </div>
       </div>
     </nav>
 
-    <div class="container mx-auto px-4">
+    <div class="container m-auto px-4">
       <template v-if="currentView === 'timer'">
         <Timer />
       </template>
@@ -52,6 +35,26 @@
           </template>
         </template>
       </template>
+    </div>
+
+    <div class="bg-white shadow flex">
+      <button 
+        @click="currentView = 'timer'"
+        class="px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
+        :class="currentView === 'timer' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
+      >
+        <span class="material-icons">timer</span>
+        Timer
+      </button>
+      <button 
+        v-if="authStore.sessionId"
+        @click="currentView = 'mail'"
+        class="px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
+        :class="currentView === 'mail' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
+      >
+        <span class="material-icons">email</span>
+        Emails
+      </button>
     </div>
   </div>
 </template>

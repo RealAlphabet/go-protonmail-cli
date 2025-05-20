@@ -5,73 +5,54 @@
     <template v-else>
       <div class="main-timer">
         <div class="time-display">
+          <p>Depuis le dernier checkpoint</p>
           <h1>
             <template v-if="getTimeMainPart(checkpointDiff)">
               {{ getTimeMainPart(checkpointDiff) }}
             </template>
             <span class="milliseconds">.{{ getTimeMilliseconds(checkpointDiff) }}</span>
           </h1>
-          <p>Depuis le dernier checkpoint</p>
         </div>
 
         <div class="total-time">
+          <p>Temps total</p>
           <h2>
             <template v-if="getTimeMainPart(totalTime)">
               {{ getTimeMainPart(totalTime) }}
             </template>
             <span class="milliseconds">.{{ getTimeMilliseconds(totalTime) }}</span>
           </h2>
-          <p>Temps total</p>
         </div>
       </div>
 
       <div class="controls">
-        <div class="main-controls">
-          <button @click="startTimer" :disabled="isRunning">Démarrer</button>
-          <button @click="stopTimer" :disabled="!isRunning">Arrêter</button>
-          <button @click="addCheckpoint" :disabled="!isRunning">Checkpoint</button>
-          <button @click="reset" :disabled="isRunning">Reset</button>
-        </div>
-
-        <div class="history-controls">
-          <button @click="undoAction" :disabled="!canUndo" title="Annuler">
-            ↶
-          </button>
-          <button @click="redoAction" :disabled="!canRedo" title="Rétablir">
-            ↷
-          </button>
-        </div>
+        <button 
+          @click="isRunning ? stopTimer() : startTimer()" 
+          :title="isRunning ? 'Arrêter' : 'Démarrer'"
+        >
+          <span class="material-icons">{{ isRunning ? 'pause' : 'play_arrow' }}</span>
+        </button>
+        <button 
+          @click="isRunning ? addCheckpoint() : reset()" 
+          :title="isRunning ? 'Checkpoint' : 'Reset'"
+        >
+          <span class="material-icons">{{ isRunning ? 'flag' : 'restart_alt' }}</span>
+        </button>
+        <button 
+          @click="showPanel = true" 
+          title="Voir les checkpoints et l'historique"
+        >
+          <span class="material-icons">list</span>
+        </button>
       </div>
 
-      <TimerHistory />
-
-      <div class="checkpoints-list" v-if="checkpoints.length">
-        <h3>Checkpoints</h3>
-        <div v-for="(checkpoint, index) in checkpoints" :key="index" class="checkpoint-item">
-          <div class="checkpoint-info">
-            <div class="checkpoint-time">
-              <template v-if="getTimeMainPart(checkpoint.duration)">
-                {{ getTimeMainPart(checkpoint.duration) }}
-              </template>
-              <span class="milliseconds">.{{ getTimeMilliseconds(checkpoint.duration) }}</span>
-            </div>
-            <div class="checkpoint-exact-time">{{ formatExactTime(checkpoint.timestamp) }}</div>
-          </div>
-          <input 
-            v-model="checkpoint.description" 
-            :placeholder="'Checkpoint ' + (index + 1)"
-            class="checkpoint-description"
-            @change="saveTimerData"
-          />
-          <button 
-            @click="deleteCheckpoint(index)" 
-            class="delete-checkpoint"
-            title="Supprimer ce checkpoint"
-          >
-            x
-          </button>
-        </div>
-      </div>
+      <TimerPanel
+        :show="showPanel"
+        :checkpoints="checkpoints"
+        @close="showPanel = false"
+        @save="saveTimerData"
+        @delete-checkpoint="deleteCheckpoint"
+      />
     </template>
   </div>
 </template>
@@ -81,7 +62,7 @@ import { ref, onUnmounted, watch, computed, provide } from 'vue'
 import { useTimerHistoryStore } from '../stores/timerHistory'
 import type { Checkpoint } from '../types'
 import { getTimeMainPart, getTimeMilliseconds } from '../utils/timeFormat'
-import TimerHistory from './TimerHistory.vue'
+import TimerPanel from './TimerPanel.vue'
 import TimerSelector from './TimerSelector.vue'
 
 interface Checkpoint {
@@ -99,7 +80,7 @@ const checkpoints = ref<Checkpoint[]>([])
 let timerInterval: number | null = null
 
 const historyStore = useTimerHistoryStore()
-const showHistory = ref(false)
+const showPanel = ref(false)
 
 // Computed properties pour l'historique
 const canUndo = computed(() => historyStore.canUndo)
@@ -198,59 +179,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.main-controls {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.history-controls {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.history-controls button {
-  width: 40px;
-  font-size: 1.5rem;
-  padding: 0;
-  line-height: 1;
-}
-
-.history-log {
-  margin-top: 2rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
-
-.history-entries {
-  max-height: 300px;
-  overflow-y: auto;
-  margin: 1rem 0;
-}
-
-.history-entry {
-  display: flex;
-  gap: 1rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
-}
-
-.history-entry.undo-point {
-  background-color: #e9ecef;
-  font-style: italic;
-}
-
 .entry-time {
   color: #666;
   font-family: monospace;
@@ -284,38 +212,56 @@ onUnmounted(() => {
   margin-bottom: 1rem;
 }
 
+.time-display p, .total-time p {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-weight: 500;
+  color: gray;
+}
+
 .time-display h1 {
-  font-size: clamp(2rem, 8vw, 4rem);
   margin: 0;
   font-family: monospace;
+  font-size: clamp(2rem, 14rem, 4rem);
+  line-height: clamp(2rem, 14rem, 4rem);
+  margin-top: .25rem;
 }
 
 .total-time h2 {
-  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-size: clamp(1.2rem, 4rem, 2rem);
+  line-height: clamp(1.2rem, 4rem, 2rem);
   margin: 0;
   font-family: monospace;
   color: #666;
+  margin-top: .25rem;
 }
 
 .controls {
+  position: absolute;
+  bottom: 9rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
   justify-content: center;
-  margin-bottom: 2rem;
   flex-wrap: wrap;
 }
 
 .controls button {
   transition: background-color 0.2s;
-  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 50%;
   background-color: var(--primary);
   color: white;
   cursor: pointer;
-  min-width: 100px;
-  flex: 1;
-  max-width: 150px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.controls button span {
+  font-size: 2rem;
 }
 
 .controls button:hover {
@@ -382,7 +328,7 @@ onUnmounted(() => {
 }
 
 .time-display .milliseconds {
-  color: inherit;
+  color: #b2b2b2;
   font-size: 0.7em;
 }
 

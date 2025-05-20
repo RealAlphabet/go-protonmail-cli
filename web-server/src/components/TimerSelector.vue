@@ -6,7 +6,7 @@
         v-model="timerId" 
         type="text" 
         placeholder="Nom du timer"
-        pattern="[a-zA-Z0-9-]+"
+        pattern="[a-zA-Z0-9\-]+"
         title="Lettres, chiffres et tirets uniquement"
         required
       >

@@ -1,62 +1,106 @@
 <!-- TimerHistory.vue -->
 <template>
-  <div class="timer-history">
-    <div class="history-log" v-if="showHistory">
-      <h3>Journal des actions</h3>
-      <div class="history-entries">
-        <div 
-          v-for="(entry, index) in timerStore.getHistory()" 
-          :key="entry.id"
-          class="history-entry"
-          :class="{ 
-            'current-entry': index === timerStore.getCurrentIndex(),
-            'future-entry': index > timerStore.getCurrentIndex()
-          }"
-        >
-          <div class="entry-time">{{ formatExactTime(entry.appliedAt) }}</div>
-          <div class="entry-action">{{ entry.action.type }}</div>
-        </div>
-      </div>
-      <div class="history-info">
-        Position : {{ timerStore.getCurrentIndex() + 1 }} / {{ timerStore.getHistory().length }}
-      </div>
-      <button class="toggle-history" @click="showHistory = false">Masquer l'historique</button>
+  <div class="history-entries">
+    <div class="history-controls">
+      <button 
+        @click="timerStore.undo()" 
+        :disabled="!timerStore.canUndo" 
+        title="Annuler"
+      >
+        <span class="material-icons">undo</span>
+      </button>
+      <button 
+        @click="timerStore.redo()" 
+        :disabled="!timerStore.canRedo" 
+        title="Rétablir"
+      >
+        <span class="material-icons">redo</span>
+      </button>
     </div>
-    <button v-else class="toggle-history" @click="showHistory = true">Afficher l'historique</button>
+    <div 
+      v-for="(entry, index) in timerStore.getHistory()" 
+      :key="entry.id"
+      class="history-entry"
+      :class="{ 
+        'current-entry': index === timerStore.getCurrentIndex(),
+        'future-entry': index > timerStore.getCurrentIndex()
+      }"
+    >
+      <div class="entry-time">{{ formatExactTime(entry.appliedAt) }}</div>
+      <div class="entry-action">
+        <span class="material-icons">{{ getActionIcon(entry.action.type) }}</span>
+        {{ formatActionType(entry.action.type) }}
+      </div>
+    </div>
+
+    <div class="history-info">
+      Position : {{ timerStore.getCurrentIndex() + 1 }} / {{ timerStore.getHistory().length }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, inject } from 'vue'
+import { inject } from 'vue'
 import { formatExactTime } from '../utils/timeFormat'
 import type { TimerHistoryStore } from '../stores/timerHistory'
 
-const showHistory = ref(false)
 const timerStore = inject<TimerHistoryStore>('timerStore')!
+
+function getActionIcon(type: string) {
+  switch (type) {
+    case 'START_TIMER': return 'play_arrow'
+    case 'STOP_TIMER': return 'pause'
+    case 'ADD_CHECKPOINT': return 'flag'
+    case 'DELETE_CHECKPOINT': return 'delete'
+    case 'RESET_TIMER': return 'restart_alt'
+    default: return 'history'
+  }
+}
+
+function formatActionType(type: string) {
+  switch (type) {
+    case 'START_TIMER': return 'Démarrage'
+    case 'STOP_TIMER': return 'Arrêt'
+    case 'ADD_CHECKPOINT': return 'Checkpoint'
+    case 'DELETE_CHECKPOINT': return 'Suppression'
+    case 'RESET_TIMER': return 'Réinitialisation'
+    default: return type
+  }
+}
 </script>
 
 <style scoped>
-.timer-history {
-  margin-top: 1rem;
+.history-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
 }
 
-.history-log {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #f5f5f5;
-  border-radius: 4px;
+.history-controls button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: var(--primary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s;
 }
 
-.history-entries {
-  max-height: 300px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
+.history-controls button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.history-controls button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
 }
 
 .history-entry {
   display: flex;
   gap: 1rem;
-  padding: 0.5rem;
+  padding: .75rem 1rem;
   border-bottom: 1px solid #ddd;
   transition: background-color 0.2s;
 }
@@ -65,6 +109,17 @@ const timerStore = inject<TimerHistoryStore>('timerStore')!
   background-color: color-mix(in srgb, var(--primary) 15%, 85% white);
   border-left: 4px solid var(--primary);
   font-weight: 500;
+}
+
+.entry-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+}
+
+.current-entry .entry-action {
+  color: var(--primary);
 }
 
 .future-entry {
@@ -85,8 +140,8 @@ const timerStore = inject<TimerHistoryStore>('timerStore')!
 .history-info {
   text-align: right;
   color: #666;
-  font-size: 0.9em;
   margin-bottom: 1rem;
+  padding: .75rem 1rem;
 }
 
 .toggle-history {

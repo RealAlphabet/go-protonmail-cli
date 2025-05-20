@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-gray-100">
+  <div class="h-screen flex flex-col bg-gray-100">
     <nav class="bg-white shadow">
       <div class="container mx-auto px-4">
         <div class="flex justify-between items-center h-16">
@@ -10,14 +10,14 @@
       </div>
     </nav>
 
-    <div class="container m-auto px-4">
+    <div class="flex flex-col flex-1 overflow-auto">
       <template v-if="page === 'timer'">
         <Timer />
       </template>
       <Notes v-else-if="page === 'notes'" />
       <template v-else>
         <template v-if="!authStore.sessionId">
-          <div class="max-w-md mx-auto">
+          <div class="max-w-md my-auto p-5">
             <h2 class="text-2xl font-bold text-center mb-8">Connexion</h2>
             <LoginForm />
           </div>

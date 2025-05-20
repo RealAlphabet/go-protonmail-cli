@@ -199,8 +199,8 @@ onUnmounted(() => {
 .timer-container {
   max-width: 600px;
   width: 100%;
-  margin: 1rem auto;
-  padding: 0.5rem;
+  margin: auto;
+  padding: 1rem;
 }
 
 .main-timer {
@@ -241,7 +241,7 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 1rem;
+  gap: 0 .5rem;
   justify-content: center;
   flex-wrap: wrap;
 }

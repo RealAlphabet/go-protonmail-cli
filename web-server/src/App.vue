@@ -11,10 +11,10 @@
     </nav>
 
     <div class="container m-auto px-4">
-      <template v-if="currentView === 'timer'">
+      <template v-if="page === 'timer'">
         <Timer />
       </template>
-      
+      <Notes v-else-if="page === 'notes'" />
       <template v-else>
         <template v-if="!authStore.sessionId">
           <div class="max-w-md mx-auto">
@@ -39,18 +39,26 @@
 
     <div class="bg-white shadow flex">
       <button 
-        @click="currentView = 'timer'"
-        class="px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
-        :class="currentView === 'timer' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
+        @click="page = 'timer'"
+        class="cursor-pointer px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
+        :class="page === 'timer' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
       >
         <span class="material-icons">timer</span>
         Timer
       </button>
       <button 
+        @click="page = 'notes'"
+        class="cursor-pointer px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
+        :class="page === 'notes' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
+      >
+        <span class="material-icons">note</span>
+        Notes
+      </button>
+      <button 
         v-if="authStore.sessionId"
-        @click="currentView = 'mail'"
-        class="px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
-        :class="currentView === 'mail' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
+        @click="page = 'mail'"
+        class="cursor-pointer px-3 py-2 flex flex-col flex-1 items-center justify-center text-sm font-medium"
+        :class="page === 'mail' ? 'bg-[var(--primary)] text-white' : 'text-gray-700 hover:bg-gray-100'"
       >
         <span class="material-icons">email</span>
         Emails
@@ -66,8 +74,9 @@ import LoginForm from './components/LoginForm.vue'
 import EmailList from './components/EmailList.vue'
 import EmailView from './components/EmailView.vue'
 import Timer from './components/Timer.vue'
+import Notes from './components/Notes.vue'
 
 const authStore = useAuthStore()
 const selectedEmailId = ref<string | null>(null)
-const currentView = ref<'timer' | 'mail'>('mail')
+const page = ref<'timer' | 'mail' | 'notes'>('mail')
 </script>

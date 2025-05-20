@@ -18,12 +18,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('dist'));
 
-// Timer data storage
+// Storage directories
 const TIMERS_DIR = 'timers';
+const NOTES_DIR = 'notes';
 
-// Créer le dossier des timers s'il n'existe pas
-if (!fs.existsSync(TIMERS_DIR)) {
-    fs.mkdirSync(TIMERS_DIR);
+// Créer les dossiers s'ils n'existent pas
+for (const dir of [TIMERS_DIR, NOTES_DIR]) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
 }
 
 // Load protobuf
@@ -141,6 +144,61 @@ app.post('/api/timer/:id', (req, res) => {
     } catch (error) {
         console.error(`Error saving timer ${timerId}:`, error);
         res.status(500).json({ error: 'Failed to save timer data' });
+    }
+});
+
+// Notes API routes
+app.get('/api/notes', (req, res) => {
+    try {
+        const notes = fs.readdirSync(NOTES_DIR)
+            .filter(file => file.endsWith('.json'))
+            .map(file => {
+                const content = JSON.parse(fs.readFileSync(path.join(NOTES_DIR, file), 'utf8'));
+                return {
+                    id: path.basename(file, '.json'),
+                    title: content.title,
+                    updatedAt: content.updatedAt
+                };
+            })
+            .sort((a, b) => b.updatedAt - a.updatedAt);
+
+        res.json(notes);
+    } catch (error) {
+        console.error('Error reading notes:', error);
+        res.status(500).json({ error: 'Failed to read notes' });
+    }
+});
+
+app.get('/api/notes/:id', (req, res) => {
+    const noteId = req.params.id;
+    const noteFile = path.join(NOTES_DIR, `${noteId}.json`);
+
+    try {
+        if (fs.existsSync(noteFile)) {
+            res.type('application/json').send(fs.readFileSync(noteFile, 'utf8'));
+        } else {
+            res.status(404).json({ error: 'Note not found' });
+        }
+    } catch (error) {
+        console.error(`Error reading note ${noteId}:`, error);
+        res.status(500).json({ error: 'Failed to read note' });
+    }
+});
+
+app.post('/api/notes/:id', (req, res) => {
+    const noteId = req.params.id;
+    const noteFile = path.join(NOTES_DIR, `${noteId}.json`);
+
+    try {
+        const noteData = {
+            ...req.body,
+            updatedAt: Date.now()
+        };
+        fs.writeFileSync(noteFile, JSON.stringify(noteData, null, 2));
+        res.json({ success: true });
+    } catch (error) {
+        console.error(`Error saving note ${noteId}:`, error);
+        res.status(500).json({ error: 'Failed to save note' });
     }
 });
 
